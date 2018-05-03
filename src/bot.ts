@@ -1,6 +1,7 @@
 import { Client, Providers } from 'yamdbf';
 const { SQLiteProvider } = Providers;
 import { MessageQueue } from './utils/MessageQueue';
+import { createEmbed } from './utils/util';
 
 const config = require('../config.json');
 const path = require('path');
@@ -30,7 +31,7 @@ client.on('pause', async () => {
 
 let setActivity = () => {
 	let user: any = client.user;
-	user.setPresence({ game: { name: `${config.botName} - ${client.guilds.size} servers!`, type: 0 } });
+	user.setPresence({ game: { name: `prefix !faq - ${client.guilds.size} servers!`, type: 0 } });
 };
 
 setInterval(() => {
@@ -46,12 +47,18 @@ client.once('clientReady', async () => {
 
 client.on('guildCreate', async guild => {
 	console.log('EVENT(guildCreate):', guild.id, guild.name, guild.memberCount);
-	messageQueue.addMessage(`EVENT(guildCreate):${guild.id} ${guild.name} ${guild.memberCount}`);
+	const embed = createEmbed(client, '#33cc33');
+	embed.setAuthor(`Guild added`, guild.iconURL);
+	embed.setDescription(`**${guild.name}** started using the bot!\n**${guild.memberCount}** members.`);
+	messageQueue.addEmbed(embed);
 });
 
 client.on('guildDelete', async guild => {
 	console.log('EVENT(guildDelete):', guild.id, guild.name, guild.memberCount);
-	messageQueue.addMessage(`EVENT(guildDelete):${guild.id} ${guild.name} ${guild.memberCount}`);
+	const embed = createEmbed(client, '#cc0000');
+	embed.setAuthor(`Guild removed`, guild.iconURL);
+	embed.setDescription(`**${guild.name}** stopped using the bot!\n**${guild.memberCount}** members.`);
+	messageQueue.addEmbed(embed);
 });
 
 client.on('reconnecting', async () => {

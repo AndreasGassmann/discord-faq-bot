@@ -8,11 +8,11 @@
     "build": "gulp",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "tslint --project tsconfig.json --config tslint.json --format stylish",
-    "nxv": "node ./scripts/npm-exact-versions.js"
+    "npm-exact-versions": "npm-exact-versions"
   },
   "pre-commit": [
     "lint",
-    "nxv"
+    "npm-exact-versions"
   ],
   "repository": {
     "type": "git",
@@ -25,6 +25,7 @@
   },
   "homepage": "https://github.com/AndreasGassmann/discord-faq-bot#readme",
   "dependencies": {
+    "npm-exact-versions": "0.0.3",
     "sequelize": "4.37.6",
     "sqlite3": "4.0.0",
     "yamdbf": "zajrik/yamdbf#indev"
