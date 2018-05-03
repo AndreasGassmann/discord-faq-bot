@@ -7,6 +7,9 @@ A simple simple bot that helps you answer frequently asked questions on your ser
 [Support discord](https://discord.gg/uTw6e7d)
 
 ## Commands
+
+The standard prefix is `!faq`, but if that doesn't work you can also do `@FAQ <command>`.
+
 ```
 !faq add <name> <description>  Add new FAQ
 !faq delete <name>             Delete specific FAQ
