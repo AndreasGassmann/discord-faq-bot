@@ -26,6 +26,7 @@
   "homepage": "https://github.com/AndreasGassmann/discord-faq-bot#readme",
   "dependencies": {
     "sequelize": "4.37.6",
+    "sqlite3": "^4.0.0",
     "yamdbf": "zajrik/yamdbf#indev"
   },
   "devDependencies": {

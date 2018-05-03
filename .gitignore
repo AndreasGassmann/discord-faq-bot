@@ -1,7 +1,8 @@
 node_modules
 config.json
 bin
-storage/
+storage/*.json
+storage/*.sqlite
 config_*.json
 test.sqlite
 sessions/
