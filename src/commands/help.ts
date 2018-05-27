@@ -1,6 +1,6 @@
-import { User, TextChannel, DMChannel, GroupDMChannel, RichEmbed } from 'discord.js';
+import { User, TextChannel, DMChannel, GroupDMChannel } from 'discord.js';
 import { Client, Command, CommandDecorators, Logger, logger, Message, Middleware } from 'yamdbf';
-import { createEmbed } from '../utils/util';
+import { createEmbed, sendEmbed } from '../utils/util';
 const { resolve } = Middleware;
 const { using } = CommandDecorators;
 
@@ -9,14 +9,15 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'help',
+			name: 'faq-help',
+			aliases: ['faqhelp'],
 			desc: 'Display help',
-			usage: '<prefix>help (command)'
+			usage: '<prefix>faq-help (command)'
 		});
 	}
 
-	@using(resolve('command: Command'))
-	public async action(message: Message, [command]: [Command]): Promise<any> {
+	@using(resolve('commandString: String'))
+	public async action(message: Message, [commandString]: [string]): Promise<any> {
 		this._logger.log(
 			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${
 			message.content
@@ -25,12 +26,15 @@ export default class extends Command<Client> {
 
 		const embed = createEmbed(this.client);
 
-		const prefix = message.guild ? await this.client.getPrefix(message.guild) : '!faq';
+		const prefix = message.guild ? await this.client.getPrefix(message.guild) : '!';
+
+		const command = this.client.commands.resolve('faq-' + commandString);
 
 		if (command) {
 			const cmd = {
 				...command,
-				usage: command.usage.replace('<prefix>', `${prefix} `)
+				name: command.name.startsWith('faq-') ? command.name.substring(4) : command.name,
+				usage: command.usage.replace('<prefix>', `${prefix}`).split('faq-').join('faq ')
 			};
 
 			embed.addField('Command', cmd.name);
@@ -53,20 +57,38 @@ export default class extends Command<Client> {
 				.filter(c => !c.ownerOnly && !c.hidden)
 				.map(c => ({
 					...c,
-					usage: c.usage.replace('<prefix>', `${prefix} `)
+					name: c.name.startsWith('faq-') ? c.name.substring(4) : c.name,
+					usage: c.usage.replace('<prefix>', `${prefix}`).split('faq-').join('faq ')
 				}))
 				.sort((a, b) => a.name.localeCompare(b.name));
 
-			let descr = '';
-			const len = commands.reduce((acc, c) => Math.max(acc, c.usage.length), 0);
-			commands.forEach(
-				c => (descr += `\`${c.usage}  ${' '.repeat(len - c.usage.length)}${c.desc}\`\n`)
-			);
-			if (descr) {
-				embed.addField('Commands', descr);
+			let allDescription = ``;
+			const allLen = commands
+				.filter(c => c.callerPermissions.every(p => p !== 'MANAGE_GUILD'))
+				.reduce((acc, c) => Math.max(acc, c.usage.length), 0);
+			commands
+				.filter(c => c.callerPermissions.every(p => p !== 'MANAGE_GUILD'))
+				.forEach(
+					c => (allDescription += `\`${c.usage}  ${' '.repeat(allLen - c.usage.length)}${c.desc}\`\n`)
+				);
+			if (allDescription) {
+				embed.addField('Public commands', allDescription);
+			}
+
+			let modDescription = ``;
+			const modLen = commands
+				.filter(c => c.callerPermissions.some(p => p === 'MANAGE_GUILD'))
+				.reduce((acc, c) => Math.max(acc, c.usage.length), 0);
+			commands
+				.filter(c => c.callerPermissions.some(p => p === 'MANAGE_GUILD'))
+				.forEach(
+					c => (modDescription += `\`${c.usage}  ${' '.repeat(modLen - c.usage.length)}${c.desc}\`\n`)
+				);
+			if (modDescription) {
+				embed.addField('Admin commands', modDescription);
 			}
 		}
 
-		message.channel.send({ embed });
+		sendEmbed(message.channel, embed, message.author);
 	}
 }

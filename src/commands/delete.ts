@@ -1,5 +1,6 @@
 import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed } from '../utils/util';
+import { createEmbed, sendEmbed } from '../utils/util';
+import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
 
@@ -9,10 +10,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'delete',
-			aliases: [],
+			name: 'faq-delete',
+			aliases: ['faq-delete'],
 			desc: 'Delete specific FAQ',
-			usage: '<prefix>delete <name>',
+			usage: '<prefix>faq-delete <name>',
 			info: '',
 			callerPermissions: ['MANAGE_GUILD'],
 			guildOnly: true
@@ -25,14 +26,15 @@ export default class extends Command<Client> {
 		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
 
 		const storage: GuildStorage = message.guild.storage;
-		let faqs = await storage.get('faq');
+		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
 
 		let faq = undefined;
+		let key = name.toLowerCase();
 
 		if (faqs) {
-			faq = faqs[name];
+			faq = faqs[key];
 			if (faq) {
-				delete faqs[name];
+				delete faqs[key];
 				await storage.set('faq', faqs);
 			}
 		}
@@ -41,11 +43,11 @@ export default class extends Command<Client> {
 
 		embed.setTitle(`${name}`);
 		if (faq) {
-			embed.setDescription(`Deleted successfully. The old message was: \n${faq}`);
+			embed.setDescription(`Deleted successfully.`);
 		} else {
 			embed.setDescription(`An FAQ with the name ${name} does not exist.`);
 		}
 
-		message.channel.send({ embed });
+		sendEmbed(message.channel, embed, message.author);
 	}
 }

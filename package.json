@@ -28,7 +28,7 @@
     "npm-exact-versions": "0.0.3",
     "sequelize": "4.37.6",
     "sqlite3": "4.0.0",
-    "yamdbf": "zajrik/yamdbf#indev"
+    "yamdbf": "github:zajrik/yamdbf#indev"
   },
   "devDependencies": {
     "@types/node": "10.0.3",

@@ -8,10 +8,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-list',
-			aliases: ['faqlist'],
-			desc: 'Show all FAQs',
-			usage: '<prefix>faq-list',
+			name: 'faq-all',
+			aliases: ['faqall'],
+			desc: 'Show all FAQs including answers',
+			usage: '<prefix>faq-all',
 			info: '',
 			callerPermissions: [],
 			guildOnly: true
@@ -30,13 +30,11 @@ export default class extends Command<Client> {
 		}
 
 		const embed = createEmbed(this.client);
-		const prefix = message.guild ? await this.client.getPrefix(message.guild) : '!';
 
-		embed.setDescription('The following FAQs are available:')
 		Object.keys(faqs).forEach(key => {
 			embed.addField(
 				`${faqs[key].question ? faqs[key].question : key}`,
-				`\`${prefix}faq ${key}\``
+				faqs[key].answer
 			);
 		})
 

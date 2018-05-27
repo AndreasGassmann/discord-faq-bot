@@ -1,9 +1,11 @@
 import { Client, Providers } from 'yamdbf';
 const { SQLiteProvider } = Providers;
 import { MessageQueue } from './utils/MessageQueue';
-import { createEmbed } from './utils/util';
+import { createEmbed, sendEmbed, greetOwner, respondToInitialDM } from './utils/util';
+import { DMChannel, TextChannel } from 'discord.js';
 
-const config = require('../config.json');
+let config = require('../config.json');
+
 const path = require('path');
 
 let messageQueue: MessageQueue = null;
@@ -18,20 +20,26 @@ const client = new Client({
 	owner: config.owner,
 	pause: true,
 	ratelimit: '2/5s',
-	disableBase: ['setlang', 'blacklist', 'eval', 'eval:ts', 'limit', 'reload', 'ping', 'help'],
+	disableBase: ['setlang', 'blacklist', 'eval', 'eval:ts', 'limit', 'reload', 'ping', 'help', 'groups', 'shortcuts'],
 	plugins: [
 	],
 	provider: SQLiteProvider('sqlite://./storage/db.sqlite')
 }).start();
 
 client.on('pause', async () => {
-	await client.setDefaultSetting('prefix', '!faq');
+	await client.setDefaultSetting('prefix', '!');
+	let setprefixCommand = client.commands.resolve('setprefix');
+	setprefixCommand.name = 'faq-setprefix';
+	setprefixCommand.aliases = setprefixCommand.aliases.map(a => `faq-${a}`);
+	setprefixCommand.usage = setprefixCommand.usage.replace('setprefix', 'faq setprefix');
 	client.emit('continue');
 });
 
 let setActivity = () => {
 	let user: any = client.user;
-	user.setPresence({ game: { name: `prefix !faq - ${client.guilds.size} servers!`, type: 0 } });
+	if (user) {
+		user.setPresence({ game: { name: `!faq - ${client.guilds.size} servers!`, type: 0 } });
+	}
 };
 
 setInterval(() => {
@@ -43,22 +51,84 @@ client.once('clientReady', async () => {
 	messageQueue.addMessage('clientReady executed');
 	console.log(`Client ready! Serving ${client.guilds.size} guilds.`);
 	setActivity();
+	client.guilds.forEach(async g => {
+		console.log(g.id);
+		let storage = await client.storage.guilds.get(g.id);
+		let settings = await storage.settings;
+		let prefix = await settings.get('prefix');
+		if (prefix === '!faq') {
+			await settings.set('prefix', '!');
+			console.log('prefix changed to !');
+		}
+		let faqs = await storage.get('faq');
+		if (faqs) {
+			let newFaqs: any = {};
+			for (let f of Object.keys(faqs)) {
+
+				let key = f.toLowerCase();
+
+				if (!newFaqs[key]) {
+					newFaqs[key] = {
+						key: f,
+						question: '',
+						answer: faqs[f],
+						trigger: [''],
+						created: {
+							userId: g.owner.id,
+							userName: g.owner.user.username,
+							timestamp: new Date()
+						},
+						lastChanged: {
+							userId: '',
+							userName: '',
+							timestamp: null
+						},
+						usage: 0,
+						enableAutoAnswer: true
+					};
+				}
+			}
+			await storage.set('faq', newFaqs);
+		}
+	});
+});
+
+client.on('message', async message => {
+	// Skip if this is our own message, bot message or empty messages
+	if (message.author.bot || !message.content.length) {
+		return;
+	}
+
+	// Skip if this is a valid bot command
+	// (technically we ignore all prefixes, but bot only responds to default one)
+	const cmd = message.content.split(' ')[0].toLowerCase();
+	if (client.commands.get(cmd) || client.commands.get(cmd.substring(1))) {
+		return;
+	}
+
+	// Scan message for keywords
+	console.log(message.content);
+
+	respondToInitialDM(client, message);
 });
 
 client.on('guildCreate', async guild => {
 	console.log('EVENT(guildCreate):', guild.id, guild.name, guild.memberCount);
+
+	greetOwner(guild);
+
 	const embed = createEmbed(client, '#33cc33');
-	embed.setAuthor(`Guild added`, guild.iconURL);
+	embed.setAuthor(`Guild added`, guild.icon);
 	embed.setDescription(`**${guild.name}** started using the bot!\n**${guild.memberCount}** members.`);
-	messageQueue.addEmbed(embed);
+	messageQueue.sendEmbed(embed);
 });
 
 client.on('guildDelete', async guild => {
 	console.log('EVENT(guildDelete):', guild.id, guild.name, guild.memberCount);
 	const embed = createEmbed(client, '#cc0000');
-	embed.setAuthor(`Guild removed`, guild.iconURL);
+	embed.setAuthor(`Guild removed`, guild.icon);
 	embed.setDescription(`**${guild.name}** stopped using the bot!\n**${guild.memberCount}** members.`);
-	messageQueue.addEmbed(embed);
+	messageQueue.sendEmbed(embed);
 });
 
 client.on('reconnecting', async () => {
@@ -69,7 +139,7 @@ client.on('disconnect', async event => {
 	console.log('EVENT(disconnect)', event);
 });
 
-client.on('resume', async replayed => {
+client.on('resume', async (replayed: any) => {
 	console.log('EVENT(resume):', replayed);
 });
 

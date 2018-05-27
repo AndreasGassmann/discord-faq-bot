@@ -1,6 +1,7 @@
 import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
 import { User } from 'discord.js';
-import { createEmbed } from '../utils/util';
+import { createEmbed, sendEmbed } from '../utils/util';
+import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
 
@@ -10,10 +11,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'show',
-			aliases: ['.'],
+			name: 'faq-show',
+			aliases: ['faqshow'],
 			desc: 'Show specific FAQ',
-			usage: '<prefix>show <name> (@user)',
+			usage: '<prefix>faq-show <name> (@user)',
 			info: '',
 			callerPermissions: [],
 			guildOnly: true
@@ -26,7 +27,7 @@ export default class extends Command<Client> {
 		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
 
 		const storage: GuildStorage = message.guild.storage;
-		let faqs = await storage.get('faq');
+		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
 
 		if (!faqs) {
 			message.channel.send('Please add FAQs using the "add" command.');
@@ -36,15 +37,21 @@ export default class extends Command<Client> {
 			return;
 		}
 
+		let key = name.toLowerCase();
+
+		let faq = faqs[key];
 		const embed = createEmbed(this.client);
 
-		embed.setTitle(name);
-		embed.setDescription(faqs[name]);
+		embed.setTitle(faq.question ? faq.question : name);
+		embed.setDescription(faq.answer);
 
 		if (user) {
 			message.channel.send(`<@${user.id}>`, { embed });
 		} else {
-			message.channel.send({ embed });
+			sendEmbed(message.channel, embed, message.author);
 		}
+
+		faq.usage++;
+		await storage.set('faq', faqs);
 	}
 }

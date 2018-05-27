@@ -1,5 +1,5 @@
 import { Client } from 'yamdbf';
-import { TextChannel, RichEmbed } from 'discord.js';
+import { TextChannel, MessageEmbed } from 'discord.js';
 const config = require('../../config.json');
 
 export class MessageQueue {
@@ -18,7 +18,7 @@ export class MessageQueue {
 		this.messages.push(`${new Date().toISOString()} - ${message}`);
 	}
 
-	public addEmbed(embed: RichEmbed) {
+	public sendEmbed(embed: MessageEmbed) {
 		// tslint:disable-next-line
 		let channel = <TextChannel>this.client.channels.get(config.logChannel);
 		if (channel) {

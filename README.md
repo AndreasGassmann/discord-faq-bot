@@ -8,15 +8,19 @@ A simple simple bot that helps you answer frequently asked questions on your ser
 
 ## Commands
 
-The standard prefix is `!faq`, but if that doesn't work you can also do `@FAQ <command>`.
+The standard prefix is `!`, but if that doesn't work you can also do `@FAQ <command>`. The bot only listens to commands starting with `<prefix>faq`, so there shouldn't be any conflicts with other bots, even if they share a prefix.
 
 ```
-!faq add <name> <description>  Add new FAQ
-!faq delete <name>             Delete specific FAQ
-!faq help (command)            Display help
-!faq list                      Show all FAQs
-!faq setprefix [prefix]        Set or check command prefix
-!faq show <name> (@user)       Show specific FAQ
+!faq                               Show a list of all FAQs
+!faq <name> (@user)           		 Show specific FAQ
+!faq add <name> <description>      Add new FAQ
+!faq delete <name>                 Delete specific FAQ
+!faq help (command)                Display help
+!faq list                          Show a list of all FAQs
+!faq detail <name>                 Show details of a specific FAQ
+!faq set <property> <name> <value> Set a property of an FAQ. Use `!faq help set` for more info
+!faq autoResponse <yes/no>				 Enable or disable automatic responses
+!faq setprefix [prefix]            Set or check command prefix
 ```
 
 ## Standard use case
@@ -27,15 +31,25 @@ After inviting, set up the bot by adding one FAQ to the bot:
 
 Now when a user asks how he can change the prefix, you can simple do
 
-`!faq show prefix @user`
-
-or a shorthand
-
-`!faq . prefix @user`
+`!faq prefix @user`
 
 This will mention the user and send him the answer you specified.
 
+## Advanced
+
+### Setting properties of FAQs
+
+To improve your FAQ, you can add properties to individual FAQs. The following properties are available:
+
+question (default: empty)
+answer (default: value set during !faq add)
+tags (default: empty)
+enableAutoAnswer (default: true)
+
+Example: `!faq set question prefix How do I set the prefix?`
+
 ## Planned features
 
-- Ability to DM new users instructions how they can use the FAQ bot themselves (`!faq list`)
-- Maybe some kind of NLP to analyze the messages and identify if someone needs help and then reply automatically.
+### Automatic answering
+
+You can define triggers that are related to your FAQ and the bot will answer automatically
