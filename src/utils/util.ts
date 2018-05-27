@@ -6,7 +6,7 @@ export function createEmbed(client: Client, color: string = '#00AE86'): MessageE
 	const embed = new MessageEmbed();
 	embed.setColor(color);
 	if (client) {
-		embed.setFooter(config.botName, client.user.avatar);
+		embed.setFooter(config.botName, client.user.avatarURL());
 	} else {
 		embed.setFooter(config.botName);
 	}
@@ -80,6 +80,7 @@ function to<T, U = any>(
 				Object.assign(err, errorExt)
 			}
 
+			console.error(err);
 			return [err, undefined]
 		})
 }
@@ -95,7 +96,7 @@ export function greetOwner(guild: Guild) {
 		'To get help setting up join messages or changing the prefix, please run the `!setup` command.\n\n' +
 		'You can see a list of all commands using the `!help` command.\n\n' +
 		`That's it! Enjoy the bot and if you have any questions feel free to join our support server!\n` +
-		'https://discord.gg/2eTnsVM'
+		'https://discord.gg/ugjweS7'
 	);
 }
 
@@ -111,7 +112,7 @@ export async function respondToInitialDM(client: Client, message: Message) {
 				`Hi there, thanks for writing me!\n\n` +
 				`To invite me to your own server, just click here: https://discordapp.com/api/oauth2/authorize?client_id=441430430403526657&permissions=0&scope=bot\n\n` +
 				`If you need help, please join our discord support server:\n\n` +
-				`https://discord.gg/Z7rtDpe.\n\n` +
+				`https://discord.gg/ugjweS7.\n\n` +
 				`Have a good day!`;
 			const embed = createEmbed(client);
 			embed.setDescription(initialMessage);
@@ -120,7 +121,7 @@ export async function respondToInitialDM(client: Client, message: Message) {
 
 		if (dmChannel) {
 			const embed = createEmbed(client);
-			embed.setAuthor(`${user.username}-${user.discriminator}`, user.avatar);
+			embed.setAuthor(`${user.username}-${user.discriminator}`, user.avatarURL());
 			embed.addField('User ID', user.id, true);
 			embed.addField('Initial message', isInitialMessage, true);
 			embed.setDescription(message.content);

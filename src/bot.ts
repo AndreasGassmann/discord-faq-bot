@@ -36,10 +36,7 @@ client.on('pause', async () => {
 });
 
 let setActivity = () => {
-	let user: any = client.user;
-	if (user) {
-		user.setPresence({ game: { name: `!faq - ${client.guilds.size} servers!`, type: 0 } });
-	}
+	client.user.setActivity(`!faq - ${client.guilds.size} servers!`);
 };
 
 setInterval(() => {
@@ -51,46 +48,6 @@ client.once('clientReady', async () => {
 	messageQueue.addMessage('clientReady executed');
 	console.log(`Client ready! Serving ${client.guilds.size} guilds.`);
 	setActivity();
-	client.guilds.forEach(async g => {
-		console.log(g.id);
-		let storage = await client.storage.guilds.get(g.id);
-		let settings = await storage.settings;
-		let prefix = await settings.get('prefix');
-		if (prefix === '!faq') {
-			await settings.set('prefix', '!');
-			console.log('prefix changed to !');
-		}
-		let faqs = await storage.get('faq');
-		if (faqs) {
-			let newFaqs: any = {};
-			for (let f of Object.keys(faqs)) {
-
-				let key = f.toLowerCase();
-
-				if (!newFaqs[key]) {
-					newFaqs[key] = {
-						key: f,
-						question: '',
-						answer: faqs[f],
-						trigger: [''],
-						created: {
-							userId: g.owner.id,
-							userName: g.owner.user.username,
-							timestamp: new Date()
-						},
-						lastChanged: {
-							userId: '',
-							userName: '',
-							timestamp: null
-						},
-						usage: 0,
-						enableAutoAnswer: true
-					};
-				}
-			}
-			await storage.set('faq', newFaqs);
-		}
-	});
 });
 
 client.on('message', async message => {
@@ -118,7 +75,7 @@ client.on('guildCreate', async guild => {
 	greetOwner(guild);
 
 	const embed = createEmbed(client, '#33cc33');
-	embed.setAuthor(`Guild added`, guild.icon);
+	embed.setAuthor(`Guild added`, guild.iconURL());
 	embed.setDescription(`**${guild.name}** started using the bot!\n**${guild.memberCount}** members.`);
 	messageQueue.sendEmbed(embed);
 });
@@ -126,7 +83,7 @@ client.on('guildCreate', async guild => {
 client.on('guildDelete', async guild => {
 	console.log('EVENT(guildDelete):', guild.id, guild.name, guild.memberCount);
 	const embed = createEmbed(client, '#cc0000');
-	embed.setAuthor(`Guild removed`, guild.icon);
+	embed.setAuthor(`Guild removed`, guild.iconURL());
 	embed.setDescription(`**${guild.name}** stopped using the bot!\n**${guild.memberCount}** members.`);
 	messageQueue.sendEmbed(embed);
 });

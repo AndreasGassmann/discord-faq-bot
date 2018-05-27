@@ -27,7 +27,10 @@ export default class extends Command<Client> {
 
 		const embed = createEmbed(this.client);
 
-		let hasReservedName = this.client.commands.some(c => c.name === `faq-${name}`);
+		let hasReservedName = this.client.commands.some(c => c.name === `faq-${name}` || c.aliases.some(a => a === `faq-${name}`));
+		if (!hasReservedName) {
+			hasReservedName = this.client.commands.some(c => c.name === name || c.aliases.some(a => a === name));
+		}
 
 		if (hasReservedName) {
 			embed.setTitle(`Error`);
