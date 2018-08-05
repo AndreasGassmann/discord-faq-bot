@@ -1,5 +1,5 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed, prompt, PromptResult } from '../utils/util';
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, prompt, PromptResult, printError } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
@@ -20,10 +20,10 @@ export default class extends Command<Client> {
 		});
 	}
 
-	@using(resolve('name: String, ...answer: String'))
-	@using(expect('name: String, ...answer: String'))
 	public async action(message: Message, [name, answer]: [string, string]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const embed = createEmbed(this.client);
 
@@ -34,18 +34,39 @@ export default class extends Command<Client> {
 			faqs = {};
 		}
 
-		let key = name.toLowerCase();
+		const [keyResult, keyValue] = await prompt(
+			message,
+			'Please enter one word that describes your FAQ (like `prefix` or `name`. (You have 60 seconds to answer)',
+		)
+		if (keyResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out.');
+		if (keyResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting... :(');
 
-		let formattedanswer = answer
+		const [questionResult, questionValue] = await prompt(
+			message,
+			'Please enter the question. (You have 60 seconds to answer)',
+		)
+		if (questionResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out.');
+		if (questionResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting... :(');
+
+		const [answerResult, answerValue] = await prompt(
+			message,
+			'Please enter the answer. (You have 60 seconds to answer)',
+		)
+		if (answerResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out.');
+		if (answerResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting... :(');
+
+		let key = keyValue.content.toLowerCase();
+
+		let formattedanswer = answerValue.content
 			.split('\\n').join('\n')
 			.split('{break}').join('\n');
 
 		if (!faqs[key]) {
 			faqs[key] = {
-				key: name,
-				question: '',
+				key: keyValue.content,
+				question: questionValue.content,
 				answer: formattedanswer,
-				trigger: [''],
+				trigger: [],
 				created: {
 					userId: message.author.id,
 					userName: message.author.username,
@@ -57,36 +78,15 @@ export default class extends Command<Client> {
 					timestamp: null
 				},
 				usage: 0,
-				enableAutoAnswer: true
+				enableAutoAnswer: false
 			};
 		}
 
-		const [keyResult, keyValue] = await prompt(
-			message,
-			'Please enter a key.',
-		)
-		if (keyResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out, aborting ban.');
-		if (keyResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting ban.');
-
-		const [questionResult, questionValue] = await prompt(
-			message,
-			'Please enter the question.',
-		)
-		if (questionResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out, aborting ban.');
-		if (questionResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting ban.');
-
-		const [answerResult, answerValue] = await prompt(
-			message,
-			'Please enter the answer.',
-		)
-		if (answerResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out, aborting ban.');
-		if (answerResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting ban.');
-
 		await storage.set('faq', faqs);
 
-		embed.setTitle(`Added: ${name}`);
+		embed.setTitle(`Added: ${keyValue.content}`);
 		embed.setDescription(`${formattedanswer}`);
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

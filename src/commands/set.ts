@@ -1,5 +1,5 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, printError, sendMessage } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
@@ -23,14 +23,16 @@ export default class extends Command<Client> {
 	@using(resolve('property: String, name: String, ...value: String'))
 	@using(expect('property: String, name: String, ...value: String'))
 	public async action(message: Message, [property, name, value]: [string, string, string]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const embed = createEmbed(this.client);
 
 		let prop = property.toLowerCase();
 
 		if (prop !== 'question' && prop !== 'answer' && prop !== 'trigger' && prop !== 'enableautoanswer') {
-			message.channel.send('Invalid property. Valid properties are: `question`, `answer`, `trigger`, `enableautoanswer`');
+			printError(sendMessage(message.channel, 'Invalid property. Valid properties are: `question`, `answer`, `trigger`, `enableautoanswer`', null, message.author));
 			return;
 		}
 
@@ -40,7 +42,7 @@ export default class extends Command<Client> {
 		let key = name.toLowerCase();
 
 		if (!faqs[key]) {
-			message.channel.send('This FAQ doesn\'t exist');
+			printError(sendMessage(message.channel, 'This FAQ doesn\'t exist', null, message.author));
 			return;
 		}
 
@@ -73,6 +75,6 @@ export default class extends Command<Client> {
 		embed.setTitle(`Updated: ${name}`);
 		embed.setDescription(`${property} of ${name} is now: ${value}`);
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

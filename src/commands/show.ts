@@ -1,6 +1,6 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from '@yamdbf/core';
 import { User } from 'discord.js';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { createEmbed, sendEmbed, printError, sendMessage } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
@@ -24,16 +24,18 @@ export default class extends Command<Client> {
 	@using(resolve('name: String, user: User'))
 	@using(expect('name: String'))
 	public async action(message: Message, [name, user]: [string, User]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const storage: GuildStorage = message.guild.storage;
 		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
 
 		if (!faqs) {
-			message.channel.send('Please add FAQs using the "add" command.');
+			printError(sendMessage(message.channel, 'Please add FAQs using the "add" command.', null, message.author));
 			return;
 		} else if (!faqs[name]) {
-			message.channel.send('This FAQ doesn\'t exist');
+			printError(sendMessage(message.channel, 'This FAQ doesn\'t exist', null, message.author));
 			return;
 		}
 
@@ -46,9 +48,9 @@ export default class extends Command<Client> {
 		embed.setDescription(faq.answer);
 
 		if (user) {
-			message.channel.send(`<@${user.id}>`, { embed });
+			printError(sendMessage(message.channel, `<@${user.id}>`, embed, message.author));
 		} else {
-			sendEmbed(message.channel, embed, message.author);
+			printError(sendEmbed(message.channel, embed, message.author));
 		}
 
 		faq.usage++;

@@ -1,4 +1,4 @@
-import { Client, Guild, Middleware } from 'yamdbf';
+import { Client, Guild, Middleware } from '@yamdbf/core';
 import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message, MessageOptions } from 'discord.js';
 
 const { resolve } = Middleware;
@@ -71,7 +71,7 @@ export async function sendMessage(
 	}
 }
 
-function to<T, U = any>(
+export function to<T, U = any>(
 	promise: Promise<T>,
 	errorExt?: object
 ): Promise<[U | null, T | undefined]> {
@@ -87,19 +87,19 @@ function to<T, U = any>(
 		})
 }
 
+export function printError<T>(promise: Promise<T>) {
+	promise.then(v => { }).catch(err => { console.error(err) });
+}
+
 // Send welcome message to owner with setup instructions
 export function greetOwner(guild: Guild) {
 	let owner = guild.owner;
-	owner.send(
-		'Hi! Thanks for inviting me to your server `' +
-		guild.name +
-		'`!\n\n' +
-		'I am now tracking all invites on your server.\n\n' +
-		'To get help setting up join messages or changing the prefix, please run the `!setup` command.\n\n' +
+	printError(owner.send(
+		`Hi! Thanks for inviting me to your server \`${guild.name}\`!\n\n` +
 		'You can see a list of all commands using the `!help` command.\n\n' +
 		`That's it! Enjoy the bot and if you have any questions feel free to join our support server!\n` +
 		'https://discord.gg/ugjweS7'
-	);
+	));
 }
 
 export async function respondToInitialDM(client: Client, message: Message) {
@@ -118,7 +118,7 @@ export async function respondToInitialDM(client: Client, message: Message) {
 				`Have a good day!`;
 			const embed = createEmbed(client);
 			embed.setDescription(initialMessage);
-			sendEmbed(user, embed);
+			printError(sendEmbed(user, embed));
 		}
 
 		if (dmChannel) {
@@ -127,7 +127,7 @@ export async function respondToInitialDM(client: Client, message: Message) {
 			embed.addField('User ID', user.id, true);
 			embed.addField('Initial message', isInitialMessage, true);
 			embed.setDescription(message.content);
-			sendEmbed(dmChannel, embed);
+			printError(sendEmbed(dmChannel, embed));
 		}
 	}
 }
@@ -146,7 +146,7 @@ export async function prompt(
 	promptStr: string,
 	options?: MessageOptions): Promise<[PromptResult, Message]> {
 	const ask: Message = <Message>await message.channel.send(promptStr, options);
-	const confirmation: Message = (await message.channel.awaitMessages(a => a.author.id === message.author.id, { max: 1, time: 20e3 })).first();
+	const confirmation: Message = (await message.channel.awaitMessages(a => a.author.id === message.author.id, { max: 1, time: 60000 })).first();
 
 	if (!confirmation) return [PromptResult.TIMEOUT, confirmation];
 	// if (!success.test(confirmation.content)) return [PromptResult.FAILURE, confirmation];

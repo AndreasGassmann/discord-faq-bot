@@ -1,5 +1,5 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, printError } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
@@ -23,7 +23,9 @@ export default class extends Command<Client> {
 	@using(resolve('name: String'))
 	@using(expect('name: String'))
 	public async action(message: Message, [name]: [string]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const storage: GuildStorage = message.guild.storage;
 		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
@@ -48,6 +50,6 @@ export default class extends Command<Client> {
 			embed.setDescription(`An FAQ with the name ${name} does not exist.`);
 		}
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

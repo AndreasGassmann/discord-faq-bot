@@ -1,6 +1,6 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildSettings } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
-const { resolve } = Middleware;
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildSettings } from '@yamdbf/core';
+import { createEmbed, sendEmbed, printError } from '../utils/util';
+const { expect, resolve } = Middleware;
 const { using } = CommandDecorators;
 
 export default class extends Command<Client> {
@@ -20,10 +20,13 @@ export default class extends Command<Client> {
 	}
 
 	@using(resolve('enabled: Boolean'))
+	@using(expect('enabled: Boolean'))
 	public async action(message: Message, [enabled]: [Boolean]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
-		const settings: GuildSettings = await message.guild.storage.settings;
+		const settings: GuildSettings = message.guild.storage.settings;
 
 		const embed = createEmbed(this.client);
 
@@ -32,6 +35,6 @@ export default class extends Command<Client> {
 		embed.setTitle('Auto responses');
 		embed.setDescription(`Are now **${enabled ? 'enabled' : 'disabled'}**`);
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }
