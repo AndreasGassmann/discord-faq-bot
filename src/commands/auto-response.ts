@@ -9,12 +9,12 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-auto-response',
-			aliases: ['faq-autoResponse'],
+			name: 'auto-response',
+			aliases: ['autoResponse'],
 			desc: 'Enable or disable automatic responses of the bot.',
-			usage: '<prefix>faq autoResponse <yes/no>',
+			usage: '<prefix>autoResponse <yes/no>',
 			info: '',
-			callerPermissions: [],
+			callerPermissions: ['MANAGE_GUILD'],
 			guildOnly: true
 		});
 	}

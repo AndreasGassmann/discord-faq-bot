@@ -1,5 +1,5 @@
 import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { createEmbed, sendEmbed, prompt, PromptResult } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
@@ -10,10 +10,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-add',
-			aliases: ['faqadd'],
+			name: 'add',
+			aliases: [],
 			desc: 'Add new FAQ',
-			usage: '<prefix>faq-add <name> <answer>',
+			usage: '<prefix>add <name> <answer>',
 			info: '',
 			callerPermissions: ['MANAGE_GUILD'],
 			guildOnly: true
@@ -26,19 +26,6 @@ export default class extends Command<Client> {
 		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
 
 		const embed = createEmbed(this.client);
-
-		let hasReservedName = this.client.commands.some(c => c.name === `faq-${name}` || c.aliases.some(a => a === `faq-${name}`));
-		if (!hasReservedName) {
-			hasReservedName = this.client.commands.some(c => c.name === name || c.aliases.some(a => a === name));
-		}
-
-		if (hasReservedName) {
-			embed.setTitle(`Error`);
-			embed.setDescription(`${name} is a reserved name, please choose another one.`);
-
-			sendEmbed(message.channel, embed, message.author);
-			return;
-		}
 
 		const storage: GuildStorage = message.guild.storage;
 		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
@@ -73,6 +60,27 @@ export default class extends Command<Client> {
 				enableAutoAnswer: true
 			};
 		}
+
+		const [keyResult, keyValue] = await prompt(
+			message,
+			'Please enter a key.',
+		)
+		if (keyResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out, aborting ban.');
+		if (keyResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting ban.');
+
+		const [questionResult, questionValue] = await prompt(
+			message,
+			'Please enter the question.',
+		)
+		if (questionResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out, aborting ban.');
+		if (questionResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting ban.');
+
+		const [answerResult, answerValue] = await prompt(
+			message,
+			'Please enter the answer.',
+		)
+		if (answerResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out, aborting ban.');
+		if (answerResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting ban.');
 
 		await storage.set('faq', faqs);
 

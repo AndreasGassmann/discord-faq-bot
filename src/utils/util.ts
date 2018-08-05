@@ -1,5 +1,7 @@
-import { Client, Guild } from 'yamdbf';
-import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message } from 'discord.js';
+import { Client, Guild, Middleware } from 'yamdbf';
+import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message, MessageOptions } from 'discord.js';
+
+const { resolve } = Middleware;
 const config = require('../../config.json');
 
 export function createEmbed(client: Client, color: string = '#00AE86'): MessageEmbed {
@@ -128,4 +130,27 @@ export async function respondToInitialDM(client: Client, message: Message) {
 			sendEmbed(dmChannel, embed);
 		}
 	}
+}
+
+/**
+ * Represents possible results of Util#prompt
+ */
+export enum PromptResult {
+	SUCCESS,
+	FAILURE,
+	TIMEOUT
+}
+
+export async function prompt(
+	message: Message,
+	promptStr: string,
+	options?: MessageOptions): Promise<[PromptResult, Message]> {
+	const ask: Message = <Message>await message.channel.send(promptStr, options);
+	const confirmation: Message = (await message.channel.awaitMessages(a => a.author.id === message.author.id, { max: 1, time: 20e3 })).first();
+
+	if (!confirmation) return [PromptResult.TIMEOUT, confirmation];
+	// if (!success.test(confirmation.content)) return [PromptResult.FAILURE, confirmation];
+	return [PromptResult.SUCCESS, confirmation];
+
+
 }

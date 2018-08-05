@@ -3,6 +3,7 @@ const { SQLiteProvider } = Providers;
 import { MessageQueue } from './utils/MessageQueue';
 import { createEmbed, sendEmbed, greetOwner, respondToInitialDM } from './utils/util';
 import { DMChannel, TextChannel } from 'discord.js';
+import { IFAQ } from './iFAQ';
 
 let config = require('../config.json');
 
@@ -27,7 +28,7 @@ const client = new Client({
 }).start();
 
 client.on('pause', async () => {
-	await client.setDefaultSetting('prefix', '!');
+	await client.setDefaultSetting('prefix', 'f!');
 	let setprefixCommand = client.commands.resolve('setprefix');
 	setprefixCommand.name = 'faq-setprefix';
 	setprefixCommand.aliases = setprefixCommand.aliases.map(a => `faq-${a}`);
@@ -36,7 +37,7 @@ client.on('pause', async () => {
 });
 
 let setActivity = () => {
-	client.user.setActivity(`!faq - ${client.guilds.size} servers!`);
+	client.user.setActivity(`f!faq - ${client.guilds.size} servers!`);
 };
 
 setInterval(() => {
@@ -65,6 +66,26 @@ client.on('message', async message => {
 
 	// Scan message for keywords
 	console.log(message.content);
+	const storage = client.storage.guilds.get(message.guild.id);
+	let faqs = await storage.get('faq');
+	console.log(faqs);
+	Object.keys(faqs).forEach((value) => {
+		let faq: IFAQ = faqs[value];
+		if (!faq.enableAutoAnswer) return;
+		let matchesTrigger = faq.trigger.every(trigger => {
+			if (trigger.length === 0) return;
+			return message.content.includes(trigger);
+		})
+		if (matchesTrigger) {
+			message.channel.send('This FAQ might answer your question.');
+			const embed = createEmbed(client);
+
+			embed.setTitle(faq.question ? faq.question : faq.key);
+			embed.setDescription(faq.answer);
+
+			sendEmbed(message.channel, embed, message.author);
+		}
+	});
 
 	respondToInitialDM(client, message);
 });

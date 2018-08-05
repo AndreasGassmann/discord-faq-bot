@@ -9,10 +9,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-help',
-			aliases: ['faqhelp'],
+			name: 'help',
+			aliases: [],
 			desc: 'Display help',
-			usage: '<prefix>faq-help (command)'
+			usage: '<prefix>help (command)'
 		});
 	}
 

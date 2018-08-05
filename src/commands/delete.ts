@@ -10,8 +10,8 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-delete',
-			aliases: ['faq-delete'],
+			name: 'delete',
+			aliases: [],
 			desc: 'Delete specific FAQ',
 			usage: '<prefix>faq-delete <name>',
 			info: '',

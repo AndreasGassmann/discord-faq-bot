@@ -8,10 +8,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-all',
-			aliases: ['faqall'],
+			name: 'list-all',
+			aliases: ['listAll'],
 			desc: 'Show all FAQs including answers',
-			usage: '<prefix>faq-all',
+			usage: '<prefix>list-all',
 			info: '',
 			callerPermissions: [],
 			guildOnly: true
