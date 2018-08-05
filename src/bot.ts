@@ -30,7 +30,7 @@ const client = new Client({
 
 client.on('pause', async () => {
 	await client.setDefaultSetting('prefix', '?');
-	await client.setDefaultSetting('auto-response', false);
+	await client.setDefaultSetting('auto-response', true);
 	client.emit('continue');
 });
 

@@ -78,7 +78,7 @@ export default class extends Command<Client> {
 					timestamp: null
 				},
 				usage: 0,
-				enableAutoAnswer: false
+				enableAutoAnswer: true
 			};
 		}
 
