@@ -1,8 +1,6 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from '@yamdbf/core';
-import { createEmbed, sendEmbed, prompt, PromptResult, printError } from '../utils/util';
+import { Client, Command, Message, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, confirmation, ConfirmationResult, printError } from '../utils/util';
 import { IFAQ } from '../iFAQ';
-const { resolve, expect } = Middleware;
-const { using } = CommandDecorators;
 
 export default class extends Command<Client> {
 	@logger('Command')
@@ -13,14 +11,14 @@ export default class extends Command<Client> {
 			name: 'add',
 			aliases: [],
 			desc: 'Add new FAQ',
-			usage: '<prefix>add <name> <answer>',
+			usage: '<prefix>add',
 			info: '',
 			callerPermissions: ['MANAGE_GUILD'],
 			guildOnly: true
 		});
 	}
 
-	public async action(message: Message, [name, answer]: [string, string]): Promise<any> {
+	public async action(message: Message, [..._args]: [string]): Promise<any> {
 		printError(this._logger.log(
 			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
 		));
@@ -34,26 +32,57 @@ export default class extends Command<Client> {
 			faqs = {};
 		}
 
-		const [keyResult, keyValue] = await prompt(
-			message,
-			'Please enter one word that describes your FAQ (like `prefix` or `name`. (You have 60 seconds to answer)',
-		)
-		if (keyResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out.');
-		if (keyResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting... :(');
+		await message.channel.send('Please enter one word that describes your FAQ (like `prefix` or `name`. (You have 60 seconds to answer, `cancel` to abort)');
+		let keyResult, keyValue, keyVerifyError;
+		do {
+			[keyResult, keyValue, keyVerifyError] = await confirmation(
+				message.channel,
+				message.author,
+				60,
+				(text) => {
+					if (text === 'cancel') return [ConfirmationResult.CANCEL, 'Aborting...'];
+					let key = text;
+					if (key.split(' ').length === 1) {
+						if (faqs[key] === undefined) {
+							return [ConfirmationResult.SUCCESS, null];
+						}
+						return [ConfirmationResult.TRY_AGAIN, 'Key already exists!'];
+					}
+					return [ConfirmationResult.TRY_AGAIN, 'Key must only be one word'];
+				}
+			)
 
-		const [questionResult, questionValue] = await prompt(
-			message,
-			'Please enter the question. (You have 60 seconds to answer)',
-		)
-		if (questionResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out.');
-		if (questionResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting... :(');
+			if (keyResult === ConfirmationResult.TRY_AGAIN) message.channel.send(keyVerifyError);
+		} while (keyResult === ConfirmationResult.TRY_AGAIN);
 
-		const [answerResult, answerValue] = await prompt(
-			message,
-			'Please enter the answer. (You have 60 seconds to answer)',
+		if (keyResult === ConfirmationResult.TIMEOUT) return message.channel.send(keyVerifyError);
+		if (keyResult === ConfirmationResult.CANCEL) return message.channel.send(keyVerifyError);
+
+		await message.channel.send('Please enter the question. (You have 60 seconds to answer, `cancel` to abort)');
+		const [questionResult, questionValue, questionVerifyError] = await confirmation(
+			message.channel,
+			message.author,
+			60,
+			(text) => {
+				if (text === 'cancel') return [ConfirmationResult.CANCEL, 'Aborting...'];
+				return [ConfirmationResult.SUCCESS, null];
+			}
 		)
-		if (answerResult === PromptResult.TIMEOUT) return message.channel.send('Command timed out.');
-		if (answerResult === PromptResult.FAILURE) return message.channel.send('Okay, aborting... :(');
+		if (questionResult === ConfirmationResult.TIMEOUT) return message.channel.send(questionVerifyError);
+		if (questionResult === ConfirmationResult.CANCEL) return message.channel.send(questionVerifyError);
+
+		await message.channel.send('Please enter the answer. (You have 60 seconds to answer, `cancel` to abort)')
+		const [answerResult, answerValue, answerVerifyError] = await confirmation(
+			message.channel,
+			message.author,
+			60,
+			(text) => {
+				if (text === 'cancel') return [ConfirmationResult.CANCEL, 'Aborting...'];
+				return [ConfirmationResult.SUCCESS, null];
+			}
+		)
+		if (answerResult === ConfirmationResult.TIMEOUT) return message.channel.send(answerVerifyError);
+		if (answerResult === ConfirmationResult.CANCEL) return message.channel.send(answerVerifyError);
 
 		let key = keyValue.content.toLowerCase();
 
@@ -78,7 +107,10 @@ export default class extends Command<Client> {
 					timestamp: null
 				},
 				usage: 0,
-				enableAutoAnswer: true
+				enableAutoAnswer: true,
+				antoAnswerUsage: 0,
+				autoAnswerWasHelpful: 0,
+				autoAnswerWasNotHelpful: 0
 			};
 		}
 

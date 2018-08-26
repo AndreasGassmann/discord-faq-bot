@@ -1,6 +1,6 @@
 import { Client, Providers } from '@yamdbf/core';
 import { MessageQueue } from './utils/MessageQueue';
-import { createEmbed, sendEmbed, greetOwner, respondToInitialDM, to, printError, sendMessage } from './utils/util';
+import { createEmbed, sendEmbed, greetOwner, respondToInitialDM, printError, sendMessage } from './utils/util';
 import { IFAQ } from './iFAQ';
 import { TextChannel } from 'discord.js';
 

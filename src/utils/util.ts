@@ -1,7 +1,6 @@
-import { Client, Guild, Middleware } from '@yamdbf/core';
-import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message, MessageOptions } from 'discord.js';
+import { Client, Guild } from '@yamdbf/core';
+import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message, } from 'discord.js';
 
-const { resolve } = Middleware;
 const config = require('../../config.json');
 
 export function createEmbed(client: Client, color: string = '#00AE86'): MessageEmbed {
@@ -88,7 +87,7 @@ export function to<T, U = any>(
 }
 
 export function printError<T>(promise: Promise<T>) {
-	promise.then(v => { }).catch(err => { console.error(err) });
+	promise.then(_value => { }).catch(error => { console.error(error) });
 }
 
 // Send welcome message to owner with setup instructions
@@ -135,22 +134,37 @@ export async function respondToInitialDM(client: Client, message: Message) {
 /**
  * Represents possible results of Util#prompt
  */
-export enum PromptResult {
-	SUCCESS,
-	FAILURE,
-	TIMEOUT
+export enum ConfirmationResult {
+	SUCCESS = 'SUCCESS',
+	CANCEL = 'CANCEL',
+	TRY_AGAIN = 'TRY_AGAIN',
+	TIMEOUT = 'TIMEOUT'
 }
 
-export async function prompt(
-	message: Message,
-	promptStr: string,
-	options?: MessageOptions): Promise<[PromptResult, Message]> {
-	const ask: Message = <Message>await message.channel.send(promptStr, options);
-	const confirmation: Message = (await message.channel.awaitMessages(a => a.author.id === message.author.id, { max: 1, time: 60000 })).first();
+export async function confirmation(
+	channel: TextChannel | DMChannel | GroupDMChannel,
+	author: User,
+	timeToWaitInSeconds: number,
+	verifyInput: (text: string) => [ConfirmationResult, string],
+): Promise<[ConfirmationResult, Message, string]> {
+	const confirmation: Message = (await channel.awaitMessages(
+		m => m.author.id === author.id,
+		{ max: 1, time: timeToWaitInSeconds * 1000 }
+	)).first();
 
-	if (!confirmation) return [PromptResult.TIMEOUT, confirmation];
-	// if (!success.test(confirmation.content)) return [PromptResult.FAILURE, confirmation];
-	return [PromptResult.SUCCESS, confirmation];
+	if (!confirmation) {
+		return [ConfirmationResult.TIMEOUT, confirmation, `I did not get an answer in time, aborting...`];
+	}
 
+	let [verifyResult, verifyFailedReason] = verifyInput(confirmation.content);
 
+	if (verifyResult === ConfirmationResult.SUCCESS) {
+		return [ConfirmationResult.SUCCESS, confirmation, null];
+	}
+
+	if (verifyResult === ConfirmationResult.TRY_AGAIN) {
+		return [ConfirmationResult.TRY_AGAIN, confirmation, verifyFailedReason];
+	}
+
+	return [ConfirmationResult.CANCEL, confirmation, verifyFailedReason];
 }

@@ -20,18 +20,16 @@ export default class extends Command<Client> {
 	}
 
 	@using(resolve('name: String'))
-	public async action(message: Message, [name, ...args]: [string, Array<string>]): Promise<any> {
+	public async action(message: Message, [name]: [string]): Promise<any> {
 		printError(this._logger.log(
 			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
 		));
 
-		console.log(name);
 		if (!name) {
 			let cmd = this.client.commands.resolve('list');
 			cmd.action(message, []);
 			return;
 		}
-
 
 		let cmd = this.client.commands.resolve('show');
 		cmd.action(message, [name]);

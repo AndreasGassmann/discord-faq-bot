@@ -15,4 +15,7 @@ export interface IFAQ {
 		timestamp: Date;
 	};
 	enableAutoAnswer: boolean;
+	antoAnswerUsage: number;
+	autoAnswerWasHelpful: number;
+	autoAnswerWasNotHelpful: number;
 }
