@@ -1,5 +1,5 @@
-import { Client, Command, Message, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { Client, Command, Message, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, printError, sendMessage } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 
 export default class extends Command<Client> {
@@ -8,10 +8,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-list',
-			aliases: ['faqlist'],
+			name: 'list',
+			aliases: [],
 			desc: 'Show all FAQs',
-			usage: '<prefix>faq-list',
+			usage: '<prefix>list',
 			info: '',
 			callerPermissions: [],
 			guildOnly: true
@@ -19,13 +19,15 @@ export default class extends Command<Client> {
 	}
 
 	public async action(message: Message): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const storage: GuildStorage = message.guild.storage;
 		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
 
 		if (!faqs || Object.keys(faqs).length === 0) {
-			message.channel.send('Please add FAQs using the "add" command.');
+			printError(sendMessage(message.channel, 'Please add FAQs using the "add" command.', null, message.author));
 			return;
 		}
 
@@ -40,6 +42,6 @@ export default class extends Command<Client> {
 			);
 		})
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

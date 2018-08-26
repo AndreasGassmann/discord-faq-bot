@@ -1,6 +1,6 @@
 import { User, TextChannel, DMChannel, GroupDMChannel } from 'discord.js';
-import { Client, Command, CommandDecorators, Logger, logger, Message, Middleware } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { Client, Command, CommandDecorators, Logger, logger, Message, Middleware } from '@yamdbf/core';
+import { createEmbed, sendEmbed, printError } from '../utils/util';
 const { resolve } = Middleware;
 const { using } = CommandDecorators;
 
@@ -9,20 +9,18 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-help',
-			aliases: ['faqhelp'],
+			name: 'help',
+			aliases: [],
 			desc: 'Display help',
-			usage: '<prefix>faq-help (command)'
+			usage: '<prefix>help (command)'
 		});
 	}
 
 	@using(resolve('commandString: String'))
 	public async action(message: Message, [commandString]: [string]): Promise<any> {
-		this._logger.log(
-			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${
-			message.content
-			}`
-		);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const embed = createEmbed(this.client);
 
@@ -89,6 +87,6 @@ export default class extends Command<Client> {
 			}
 		}
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

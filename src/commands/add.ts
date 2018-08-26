@@ -1,8 +1,6 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { Client, Command, Message, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, confirmation, ConfirmationResult, printError } from '../utils/util';
 import { IFAQ } from '../iFAQ';
-const { resolve, expect } = Middleware;
-const { using } = CommandDecorators;
 
 export default class extends Command<Client> {
 	@logger('Command')
@@ -10,35 +8,22 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-add',
-			aliases: ['faqadd'],
+			name: 'add',
+			aliases: [],
 			desc: 'Add new FAQ',
-			usage: '<prefix>faq-add <name> <answer>',
+			usage: '<prefix>add',
 			info: '',
 			callerPermissions: ['MANAGE_GUILD'],
 			guildOnly: true
 		});
 	}
 
-	@using(resolve('name: String, ...answer: String'))
-	@using(expect('name: String, ...answer: String'))
-	public async action(message: Message, [name, answer]: [string, string]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+	public async action(message: Message, [..._args]: [string]): Promise<any> {
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const embed = createEmbed(this.client);
-
-		let hasReservedName = this.client.commands.some(c => c.name === `faq-${name}` || c.aliases.some(a => a === `faq-${name}`));
-		if (!hasReservedName) {
-			hasReservedName = this.client.commands.some(c => c.name === name || c.aliases.some(a => a === name));
-		}
-
-		if (hasReservedName) {
-			embed.setTitle(`Error`);
-			embed.setDescription(`${name} is a reserved name, please choose another one.`);
-
-			sendEmbed(message.channel, embed, message.author);
-			return;
-		}
 
 		const storage: GuildStorage = message.guild.storage;
 		let faqs: { [key: string]: IFAQ } = await storage.get('faq');
@@ -47,18 +32,70 @@ export default class extends Command<Client> {
 			faqs = {};
 		}
 
-		let key = name.toLowerCase();
+		await message.channel.send('Please enter one word that describes your FAQ (like `prefix` or `name`. (You have 60 seconds to answer, `cancel` to abort)');
+		let keyResult, keyValue, keyVerifyError;
+		do {
+			[keyResult, keyValue, keyVerifyError] = await confirmation(
+				message.channel,
+				message.author,
+				60,
+				(text) => {
+					if (text === 'cancel') return [ConfirmationResult.CANCEL, 'Aborting...'];
+					let key = text;
+					if (key.split(' ').length === 1) {
+						if (faqs[key] === undefined) {
+							return [ConfirmationResult.SUCCESS, null];
+						}
+						return [ConfirmationResult.TRY_AGAIN, 'Key already exists!'];
+					}
+					return [ConfirmationResult.TRY_AGAIN, 'Key must only be one word'];
+				}
+			)
 
-		let formattedanswer = answer
+			if (keyResult === ConfirmationResult.TRY_AGAIN) message.channel.send(keyVerifyError);
+		} while (keyResult === ConfirmationResult.TRY_AGAIN);
+
+		if (keyResult === ConfirmationResult.TIMEOUT) return message.channel.send(keyVerifyError);
+		if (keyResult === ConfirmationResult.CANCEL) return message.channel.send(keyVerifyError);
+
+		await message.channel.send('Please enter the question. (You have 60 seconds to answer, `cancel` to abort)');
+		const [questionResult, questionValue, questionVerifyError] = await confirmation(
+			message.channel,
+			message.author,
+			60,
+			(text) => {
+				if (text === 'cancel') return [ConfirmationResult.CANCEL, 'Aborting...'];
+				return [ConfirmationResult.SUCCESS, null];
+			}
+		)
+		if (questionResult === ConfirmationResult.TIMEOUT) return message.channel.send(questionVerifyError);
+		if (questionResult === ConfirmationResult.CANCEL) return message.channel.send(questionVerifyError);
+
+		await message.channel.send('Please enter the answer. (You have 60 seconds to answer, `cancel` to abort)')
+		const [answerResult, answerValue, answerVerifyError] = await confirmation(
+			message.channel,
+			message.author,
+			60,
+			(text) => {
+				if (text === 'cancel') return [ConfirmationResult.CANCEL, 'Aborting...'];
+				return [ConfirmationResult.SUCCESS, null];
+			}
+		)
+		if (answerResult === ConfirmationResult.TIMEOUT) return message.channel.send(answerVerifyError);
+		if (answerResult === ConfirmationResult.CANCEL) return message.channel.send(answerVerifyError);
+
+		let key = keyValue.content.toLowerCase();
+
+		let formattedanswer = answerValue.content
 			.split('\\n').join('\n')
 			.split('{break}').join('\n');
 
 		if (!faqs[key]) {
 			faqs[key] = {
-				key: name,
-				question: '',
+				key: keyValue.content,
+				question: questionValue.content,
 				answer: formattedanswer,
-				trigger: [''],
+				trigger: '',
 				created: {
 					userId: message.author.id,
 					userName: message.author.username,
@@ -70,15 +107,18 @@ export default class extends Command<Client> {
 					timestamp: null
 				},
 				usage: 0,
-				enableAutoAnswer: true
+				enableAutoAnswer: true,
+				antoAnswerUsage: 0,
+				autoAnswerWasHelpful: 0,
+				autoAnswerWasNotHelpful: 0
 			};
 		}
 
 		await storage.set('faq', faqs);
 
-		embed.setTitle(`Added: ${name}`);
+		embed.setTitle(`Added: ${keyValue.content}`);
 		embed.setDescription(`${formattedanswer}`);
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

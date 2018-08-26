@@ -2,5 +2,6 @@
 	"discordToken": "",
 	"owner": "",
 	"botName": "FAQ",
-	"logChannel": ""
+	"logChannel": "",
+	"autoResponseChannel": ""
 }

@@ -1,5 +1,6 @@
-import { Client, Guild } from 'yamdbf';
-import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message } from 'discord.js';
+import { Client, Guild } from '@yamdbf/core';
+import { MessageEmbed, User, TextChannel, DMChannel, GroupDMChannel, Message, } from 'discord.js';
+
 const config = require('../../config.json');
 
 export function createEmbed(client: Client, color: string = '#00AE86'): MessageEmbed {
@@ -37,9 +38,10 @@ function convertEmbedToPlain(embed: MessageEmbed) {
 export async function sendEmbed(
 	target: User | TextChannel | DMChannel | GroupDMChannel,
 	embed: MessageEmbed,
-	fallbackUser?: User
+	fallbackUser?: User,
+	plainMessage?: String
 ): Promise<Message | Message[]> {
-	let [err, response] = await to(target.send({ embed }));
+	let [err, response] = await to(target.send(plainMessage, { embed }));
 	if (!err) { return response; }
 
 	const content = convertEmbedToPlain(embed);
@@ -69,7 +71,7 @@ export async function sendMessage(
 	}
 }
 
-function to<T, U = any>(
+export function to<T, U = any>(
 	promise: Promise<T>,
 	errorExt?: object
 ): Promise<[U | null, T | undefined]> {
@@ -85,19 +87,19 @@ function to<T, U = any>(
 		})
 }
 
+export function printError<T>(promise: Promise<T>) {
+	promise.then(_value => { }).catch(error => { console.error(error) });
+}
+
 // Send welcome message to owner with setup instructions
 export function greetOwner(guild: Guild) {
 	let owner = guild.owner;
-	owner.send(
-		'Hi! Thanks for inviting me to your server `' +
-		guild.name +
-		'`!\n\n' +
-		'I am now tracking all invites on your server.\n\n' +
-		'To get help setting up join messages or changing the prefix, please run the `!setup` command.\n\n' +
+	printError(owner.send(
+		`Hi! Thanks for inviting me to your server \`${guild.name}\`!\n\n` +
 		'You can see a list of all commands using the `!help` command.\n\n' +
 		`That's it! Enjoy the bot and if you have any questions feel free to join our support server!\n` +
 		'https://discord.gg/ugjweS7'
-	);
+	));
 }
 
 export async function respondToInitialDM(client: Client, message: Message) {
@@ -116,7 +118,7 @@ export async function respondToInitialDM(client: Client, message: Message) {
 				`Have a good day!`;
 			const embed = createEmbed(client);
 			embed.setDescription(initialMessage);
-			sendEmbed(user, embed);
+			printError(sendEmbed(user, embed));
 		}
 
 		if (dmChannel) {
@@ -125,7 +127,45 @@ export async function respondToInitialDM(client: Client, message: Message) {
 			embed.addField('User ID', user.id, true);
 			embed.addField('Initial message', isInitialMessage, true);
 			embed.setDescription(message.content);
-			sendEmbed(dmChannel, embed);
+			printError(sendEmbed(dmChannel, embed));
 		}
 	}
+}
+
+/**
+ * Represents possible results of Util#prompt
+ */
+export enum ConfirmationResult {
+	SUCCESS = 'SUCCESS',
+	CANCEL = 'CANCEL',
+	TRY_AGAIN = 'TRY_AGAIN',
+	TIMEOUT = 'TIMEOUT'
+}
+
+export async function confirmation(
+	channel: TextChannel | DMChannel | GroupDMChannel,
+	author: User,
+	timeToWaitInSeconds: number,
+	verifyInput: (text: string) => [ConfirmationResult, string],
+): Promise<[ConfirmationResult, Message, string]> {
+	const confirmation: Message = (await channel.awaitMessages(
+		m => m.author.id === author.id,
+		{ max: 1, time: timeToWaitInSeconds * 1000 }
+	)).first();
+
+	if (!confirmation) {
+		return [ConfirmationResult.TIMEOUT, confirmation, `I did not get an answer in time, aborting...`];
+	}
+
+	let [verifyResult, verifyFailedReason] = verifyInput(confirmation.content);
+
+	if (verifyResult === ConfirmationResult.SUCCESS) {
+		return [ConfirmationResult.SUCCESS, confirmation, null];
+	}
+
+	if (verifyResult === ConfirmationResult.TRY_AGAIN) {
+		return [ConfirmationResult.TRY_AGAIN, confirmation, verifyFailedReason];
+	}
+
+	return [ConfirmationResult.CANCEL, confirmation, verifyFailedReason];
 }

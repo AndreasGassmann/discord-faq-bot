@@ -1,5 +1,5 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from 'yamdbf';
-import { createEmbed, sendEmbed } from '../utils/util';
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger, GuildStorage } from '@yamdbf/core';
+import { createEmbed, sendEmbed, printError, sendMessage } from '../utils/util';
 import { IFAQ } from '../iFAQ';
 const { resolve, expect } = Middleware;
 const { using } = CommandDecorators;
@@ -10,10 +10,10 @@ export default class extends Command<Client> {
 
 	public constructor() {
 		super({
-			name: 'faq-set',
-			aliases: ['faqset'],
+			name: 'set',
+			aliases: [],
 			desc: 'Set property of FAQ',
-			usage: '<prefix>faq-set <property> <name> <value>',
+			usage: '<prefix>set <property> <name> <value>',
 			info: 'Possible values are `question`, `answer`, `tags`, `enableAutoAnswer`',
 			callerPermissions: ['MANAGE_GUILD'],
 			guildOnly: true
@@ -23,14 +23,16 @@ export default class extends Command<Client> {
 	@using(resolve('property: String, name: String, ...value: String'))
 	@using(expect('property: String, name: String, ...value: String'))
 	public async action(message: Message, [property, name, value]: [string, string, string]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		const embed = createEmbed(this.client);
 
 		let prop = property.toLowerCase();
 
 		if (prop !== 'question' && prop !== 'answer' && prop !== 'trigger' && prop !== 'enableautoanswer') {
-			message.channel.send('Invalid property. Valid properties are: `question`, `answer`, `trigger`, `enableautoanswer`');
+			printError(sendMessage(message.channel, 'Invalid property. Valid properties are: `question`, `answer`, `trigger`, `enableautoanswer`', null, message.author));
 			return;
 		}
 
@@ -40,7 +42,7 @@ export default class extends Command<Client> {
 		let key = name.toLowerCase();
 
 		if (!faqs[key]) {
-			message.channel.send('This FAQ doesn\'t exist');
+			printError(sendMessage(message.channel, 'This FAQ doesn\'t exist', null, message.author));
 			return;
 		}
 
@@ -51,7 +53,7 @@ export default class extends Command<Client> {
 			faqs[key].answer = value.split('\\n').join('\n').split('{break}').join('\n');
 		}
 		if (prop === 'trigger') {
-			faqs[key].answer = value;
+			faqs[key].trigger = value;
 		}
 		if (prop === 'enableautoanswer') {
 			faqs[key].enableAutoAnswer = value === 'yes' || value === 'true' ? true : false;
@@ -66,6 +68,6 @@ export default class extends Command<Client> {
 		embed.setTitle(`Updated: ${name}`);
 		embed.setDescription(`${property} of ${name} is now: ${value}`);
 
-		sendEmbed(message.channel, embed, message.author);
+		printError(sendEmbed(message.channel, embed, message.author));
 	}
 }

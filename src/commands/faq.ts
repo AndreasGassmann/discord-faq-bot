@@ -1,4 +1,5 @@
-import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger } from 'yamdbf';
+import { Client, Command, CommandDecorators, Message, Middleware, Logger, logger } from '@yamdbf/core';
+import { printError } from '../utils/util';
 const { resolve } = Middleware;
 const { using } = CommandDecorators;
 
@@ -19,21 +20,18 @@ export default class extends Command<Client> {
 	}
 
 	@using(resolve('name: String'))
-	public async action(message: Message, [name, ...args]: [string, Array<string>]): Promise<any> {
-		this._logger.log(`${message.guild.name} (${message.author.username}): ${message.content}`);
+	public async action(message: Message, [name]: [string]): Promise<any> {
+		printError(this._logger.log(
+			`${message.guild ? message.guild.name : 'DM'} (${message.author.username}): ${message.content}`
+		));
 
 		if (!name) {
-			let cmd = this.client.commands.resolve('faq-list');
+			let cmd = this.client.commands.resolve('list');
 			cmd.action(message, []);
 			return;
 		}
 
-		let cmd = this.client.commands.resolve('faq-' + name);
-		if (cmd) {
-			cmd.action(message, args);
-		} else {
-			cmd = this.client.commands.resolve('faq-show');
-			cmd.action(message, [name]);
-		}
+		let cmd = this.client.commands.resolve('show');
+		cmd.action(message, [name]);
 	}
 }

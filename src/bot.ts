@@ -1,8 +1,10 @@
-import { Client, Providers } from 'yamdbf';
-const { SQLiteProvider } = Providers;
+import { Client, Providers } from '@yamdbf/core';
 import { MessageQueue } from './utils/MessageQueue';
-import { createEmbed, sendEmbed, greetOwner, respondToInitialDM } from './utils/util';
-import { DMChannel, TextChannel } from 'discord.js';
+import { createEmbed, sendEmbed, greetOwner, respondToInitialDM, printError, sendMessage } from './utils/util';
+import { IFAQ, AutoResponseLocation } from './iFAQ';
+import { TextChannel } from 'discord.js';
+
+const { SQLiteProvider } = Providers;
 
 let config = require('../config.json');
 
@@ -27,16 +29,14 @@ const client = new Client({
 }).start();
 
 client.on('pause', async () => {
-	await client.setDefaultSetting('prefix', '!');
-	let setprefixCommand = client.commands.resolve('setprefix');
-	setprefixCommand.name = 'faq-setprefix';
-	setprefixCommand.aliases = setprefixCommand.aliases.map(a => `faq-${a}`);
-	setprefixCommand.usage = setprefixCommand.usage.replace('setprefix', 'faq setprefix');
+	await client.setDefaultSetting('prefix', '?');
+	await client.setDefaultSetting('auto-response', true);
+	await client.setDefaultSetting('auto-response-location', 'channel');
 	client.emit('continue');
 });
 
 let setActivity = () => {
-	client.user.setActivity(`!faq - ${client.guilds.size} servers!`);
+	printError(client.user.setActivity(`?faq - ${client.guilds.size} servers!`));
 };
 
 setInterval(() => {
@@ -44,14 +44,15 @@ setInterval(() => {
 }, 30000);
 
 client.once('clientReady', async () => {
+	const startMessage = `Client ready! Serving ${client.guilds.size} guilds.`;
+	console.log(startMessage);
 	messageQueue = new MessageQueue(client);
-	messageQueue.addMessage('clientReady executed');
-	console.log(`Client ready! Serving ${client.guilds.size} guilds.`);
+	messageQueue.addMessage(startMessage);
 	setActivity();
 });
 
 client.on('message', async message => {
-	// Skip if this is our own message, bot message or empty messages
+	// Skip if this is a bot or empty message
 	if (message.author.bot || !message.content.length) {
 		return;
 	}
@@ -64,9 +65,64 @@ client.on('message', async message => {
 	}
 
 	// Scan message for keywords
-	console.log(message.content);
+	const storage = client.storage.guilds.get(message.guild.id);
+	const autoResponseEnabled = await storage.settings.get('auto-response');
+	if (autoResponseEnabled) {
+		console.log('Scanning message', message.content);
 
-	respondToInitialDM(client, message);
+		let faqs = await storage.get('faq');
+
+		if (faqs) {
+			Object.keys(faqs).forEach(async (value) => {
+				let faq: IFAQ = faqs[value];
+				if (!faq.enableAutoAnswer) return;
+				if (faq.trigger.length === 0) return;
+				if (Array.isArray(faq.trigger)) {
+					return;
+				}
+
+				let triggerGroups = faq.trigger.split('|');
+				let matchesTrigger = triggerGroups.some(trigger => {
+					if (trigger.length === 0) return false;
+					let triggerArray = trigger.split(',');
+					return triggerArray.every(word => {
+						if (word.length === 0) return false;
+						return message.content.includes(word);
+					});
+				});
+				if (matchesTrigger) {
+					const autoResponseLocation: AutoResponseLocation = await storage.settings.get('auto-response-location');
+
+					const embed = createEmbed(client);
+
+					embed.setTitle(faq.question ? faq.question : faq.key);
+					embed.setDescription(faq.answer);
+					faq.antoAnswerUsage ? faq.antoAnswerUsage++ : faq.antoAnswerUsage = 1;
+					await storage.set('faq', faqs);
+
+					if (autoResponseLocation === AutoResponseLocation.DM) {
+						printError(sendMessage(message.channel, `<@${message.author.id}>, we found an FAQ \`${faq.key}\` that might answer your question. We sent it to you via DM.`, null, message.author));
+						printError(sendEmbed(message.author, embed, null, `Because of your message in ${message.guild.name}, we think this FAQ might help you.`));
+					} else if (autoResponseLocation === AutoResponseLocation.CHANNEL) {
+						printError(sendEmbed(message.channel, embed, null, 'We found an FAQ that might help you'));
+					} else {
+						printError(sendEmbed(message.author, embed, null, `Because of your message in ${message.guild.name}, we think this FAQ might help you.`));
+						printError(sendEmbed(message.channel, embed, null, 'We found an FAQ that might help you'));
+					}
+
+					if (config.autoResponseChannel) {
+						let channel = <TextChannel>client.channels.get(config.autoResponseChannel);
+						if (channel) {
+							let response = `\`\`\`Triggered in guild ${message.guild.name} by ${message.author.username}\`\`\`\n${message.content}`;
+							channel.send(response, { embed }).then(() => { }).catch(console.error);
+						}
+					}
+				}
+			});
+		}
+	}
+
+	printError(respondToInitialDM(client, message));
 });
 
 client.on('guildCreate', async guild => {

@@ -1,4 +1,4 @@
-import { Client } from 'yamdbf';
+import { Client } from '@yamdbf/core';
 import { TextChannel, MessageEmbed } from 'discord.js';
 const config = require('../../config.json');
 
