@@ -77,10 +77,19 @@ client.on('message', async message => {
 				let faq: IFAQ = faqs[value];
 				if (!faq.enableAutoAnswer) return;
 				if (faq.trigger.length === 0) return;
-				let matchesTrigger = faq.trigger.every(trigger => {
-					if (trigger.length === 0) return;
-					return message.content.includes(trigger);
-				})
+				if (Array.isArray(faq.trigger)) {
+					return;
+				}
+
+				let triggerGroups = faq.trigger.split('|');
+				let matchesTrigger = triggerGroups.some(trigger => {
+					if (trigger.length === 0) return false;
+					let triggerArray = trigger.split(',');
+					return triggerArray.every(word => {
+						if (word.length === 0) return false;
+						return message.content.includes(word);
+					});
+				});
 				if (matchesTrigger) {
 					const autoResponseLocation: AutoResponseLocation = await storage.settings.get('auto-response-location');
 
@@ -93,11 +102,11 @@ client.on('message', async message => {
 
 					if (autoResponseLocation === AutoResponseLocation.DM) {
 						printError(sendMessage(message.channel, `<@${message.author.id}>, we found an FAQ \`${faq.key}\` that might answer your question. We sent it to you via DM.`, null, message.author));
-						printError(sendEmbed(message.author, embed));
+						printError(sendEmbed(message.author, embed, null, `Because of your message in ${message.guild.name}, we think this FAQ might help you.`));
 					} else if (autoResponseLocation === AutoResponseLocation.CHANNEL) {
 						printError(sendEmbed(message.channel, embed, null, 'We found an FAQ that might help you'));
 					} else {
-						printError(sendEmbed(message.author, embed));
+						printError(sendEmbed(message.author, embed, null, `Because of your message in ${message.guild.name}, we think this FAQ might help you.`));
 						printError(sendEmbed(message.channel, embed, null, 'We found an FAQ that might help you'));
 					}
 

@@ -95,7 +95,7 @@ export default class extends Command<Client> {
 				key: keyValue.content,
 				question: questionValue.content,
 				answer: formattedanswer,
-				trigger: [],
+				trigger: '',
 				created: {
 					userId: message.author.id,
 					userName: message.author.username,

@@ -46,6 +46,7 @@ export default class extends Command<Client> {
 
 				console.log('trigger: ', faq.trigger);
 				if (faq.trigger.length > 0) embed.addField('Triggers', JSON.stringify(faq.trigger));
+				if (faq.trigger.length === 0) embed.addField('Triggers', 'Not set');
 				embed.addField('Auto Answer enabled?', faq.enableAutoAnswer);
 
 				embed.addField('Usage', `${faq.usage} ${faq.usage === 1 ? 'time' : 'times'}`);
@@ -55,6 +56,11 @@ export default class extends Command<Client> {
 						'Last changed',
 						`${faq.lastChanged.userName} (<@${faq.lastChanged.userId}>) at ${faq.lastChanged.timestamp}`);
 				}
+				if (faq.antoAnswerUsage) {
+					embed.addField('Number of times triggered by Auto Response', `${faq.antoAnswerUsage}`);
+				}
+			} else {
+				embed.setTitle('No FAQ with this name found!');
 			}
 		} else {
 			Object.keys(faqs).forEach(key => {

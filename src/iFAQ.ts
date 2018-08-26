@@ -2,7 +2,7 @@ export interface IFAQ {
 	key: string;
 	question: string;
 	answer: string;
-	trigger: string[];
+	trigger: string;
 	usage: number;
 	created: {
 		userId: string;

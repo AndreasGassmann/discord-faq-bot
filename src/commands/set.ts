@@ -53,12 +53,7 @@ export default class extends Command<Client> {
 			faqs[key].answer = value.split('\\n').join('\n').split('{break}').join('\n');
 		}
 		if (prop === 'trigger') {
-			try {
-				let json = JSON.parse(value);
-				faqs[key].trigger = json;
-			} catch (e) {
-				console.log(e);
-			}
+			faqs[key].trigger = value;
 		}
 		if (prop === 'enableautoanswer') {
 			faqs[key].enableAutoAnswer = value === 'yes' || value === 'true' ? true : false;
@@ -67,8 +62,6 @@ export default class extends Command<Client> {
 		faqs[key].lastChanged.userId = message.author.id;
 		faqs[key].lastChanged.userName = message.author.username;
 		faqs[key].lastChanged.timestamp = new Date();
-
-		console.log(faqs[key]);
 
 		await storage.set('faq', faqs);
 
