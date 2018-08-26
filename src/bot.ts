@@ -1,7 +1,7 @@
 import { Client, Providers } from '@yamdbf/core';
 import { MessageQueue } from './utils/MessageQueue';
 import { createEmbed, sendEmbed, greetOwner, respondToInitialDM, printError, sendMessage } from './utils/util';
-import { IFAQ } from './iFAQ';
+import { IFAQ, AutoResponseLocation } from './iFAQ';
 import { TextChannel } from 'discord.js';
 
 const { SQLiteProvider } = Providers;
@@ -31,6 +31,7 @@ const client = new Client({
 client.on('pause', async () => {
 	await client.setDefaultSetting('prefix', '?');
 	await client.setDefaultSetting('auto-response', true);
+	await client.setDefaultSetting('auto-response-location', 'channel');
 	client.emit('continue');
 });
 
@@ -65,14 +66,14 @@ client.on('message', async message => {
 
 	// Scan message for keywords
 	const storage = client.storage.guilds.get(message.guild.id);
-	const autoResponseEnabled = storage.settings.get('auto-response');
+	const autoResponseEnabled = await storage.settings.get('auto-response');
 	if (autoResponseEnabled) {
 		console.log('Scanning message', message.content);
 
 		let faqs = await storage.get('faq');
 
 		if (faqs) {
-			Object.keys(faqs).forEach((value) => {
+			Object.keys(faqs).forEach(async (value) => {
 				let faq: IFAQ = faqs[value];
 				if (!faq.enableAutoAnswer) return;
 				if (faq.trigger.length === 0) return;
@@ -81,13 +82,24 @@ client.on('message', async message => {
 					return message.content.includes(trigger);
 				})
 				if (matchesTrigger) {
-					printError(sendMessage(message.channel, `<@${message.author.id}>, we found an FAQ that might answer your question. We sent it to you via DM.`, null, message.author));
+					const autoResponseLocation: AutoResponseLocation = await storage.settings.get('auto-response-location');
+
 					const embed = createEmbed(client);
 
 					embed.setTitle(faq.question ? faq.question : faq.key);
 					embed.setDescription(faq.answer);
+					faq.antoAnswerUsage ? faq.antoAnswerUsage++ : faq.antoAnswerUsage = 1;
+					await storage.set('faq', faqs);
 
-					printError(sendEmbed(message.author, embed));
+					if (autoResponseLocation === AutoResponseLocation.DM) {
+						printError(sendMessage(message.channel, `<@${message.author.id}>, we found an FAQ \`${faq.key}\` that might answer your question. We sent it to you via DM.`, null, message.author));
+						printError(sendEmbed(message.author, embed));
+					} else if (autoResponseLocation === AutoResponseLocation.CHANNEL) {
+						printError(sendEmbed(message.channel, embed, null, 'We found an FAQ that might help you'));
+					} else {
+						printError(sendEmbed(message.author, embed));
+						printError(sendEmbed(message.channel, embed, null, 'We found an FAQ that might help you'));
+					}
 
 					if (config.autoResponseChannel) {
 						let channel = <TextChannel>client.channels.get(config.autoResponseChannel);

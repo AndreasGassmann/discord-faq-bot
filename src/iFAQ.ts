@@ -19,3 +19,14 @@ export interface IFAQ {
 	autoAnswerWasHelpful: number;
 	autoAnswerWasNotHelpful: number;
 }
+
+export enum FAQSettingsKeys {
+	AUTO_RESPONSE = 'auto-response',
+	AUTO_RESPONSE_LOCATION = 'auto-response-location'
+}
+
+export enum AutoResponseLocation {
+	CHANNEL = 'channel',
+	DM = 'dm',
+	BOTH = 'both'
+}

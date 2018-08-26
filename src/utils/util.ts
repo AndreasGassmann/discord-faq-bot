@@ -38,9 +38,10 @@ function convertEmbedToPlain(embed: MessageEmbed) {
 export async function sendEmbed(
 	target: User | TextChannel | DMChannel | GroupDMChannel,
 	embed: MessageEmbed,
-	fallbackUser?: User
+	fallbackUser?: User,
+	plainMessage?: String
 ): Promise<Message | Message[]> {
-	let [err, response] = await to(target.send({ embed }));
+	let [err, response] = await to(target.send(plainMessage, { embed }));
 	if (!err) { return response; }
 
 	const content = convertEmbedToPlain(embed);
